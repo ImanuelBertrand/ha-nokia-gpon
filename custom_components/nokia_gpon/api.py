@@ -53,6 +53,10 @@ class LoginServerError(CannotConnect):
     """Router answered the login POST with a 5xx error."""
 
 
+class SessionLost(NokiaError):
+    """The router no longer accepts our session (usually: someone else logged in)."""
+
+
 class CertificateMismatch(NokiaError):
     """Router presented a different TLS certificate than the pinned one."""
 
@@ -207,8 +211,13 @@ class NokiaRouter:
 
     def lan_status_page(self) -> str:
         status, body = self._request("GET", "/lan_status.cgi?wlan")
-        if status != 200:
+        if status >= 500:
             raise CannotConnect(f"lan_status.cgi returned HTTP {status}")
+        if "var device_cfg" not in body:
+            # The router allows one session per account; a newer login (e.g. the web UI in a
+            # browser) invalidates ours. G-2426G-A then answers 200 with a tiny page without
+            # the device list (not the login page), so check for the data, not for an error.
+            raise SessionLost(f"session no longer valid (HTTP {status})")
         return body
 
     def __enter__(self):
@@ -227,9 +236,49 @@ class NokiaRouter:
 
 
 def fetch_devices(host: str, user: str, password: str, fingerprint: str) -> list[dict]:
-    """Log in, read the device list, log out. Blocking."""
+    """Log in, read the device list, log out. Blocking. Used for one-off checks."""
     with NokiaRouter(host, user, password, fingerprint) as router:
         return parse_devices(router.lan_status_page())
+
+
+class NokiaClient:
+    """Keeps one logged-in session across polls. Blocking; use from one thread at a time.
+
+    The router allows a single session per account and every login kicks out the previous
+    one (e.g. a browser using the web UI), so logging in once and reusing the session is
+    much less disruptive than logging in on every poll, and about 3x faster.
+    """
+
+    def __init__(self, host: str, user: str, password: str, fingerprint: str):
+        self._args = (host, user, password, fingerprint)
+        self._router: NokiaRouter | None = None
+
+    def poll(self) -> list[dict]:
+        if self._router is None:
+            router = NokiaRouter(*self._args)
+            try:
+                router.login()
+            except BaseException:
+                router.s.close()
+                raise
+            self._router = router
+        try:
+            return parse_devices(self._router.lan_status_page())
+        except NokiaError:
+            # Session lost or router trouble: drop the session (an invalid session has nothing
+            # to log out) and log in fresh next time.
+            self.close(logout=False)
+            raise
+
+    def close(self, logout: bool = True) -> None:
+        if self._router is None:
+            return
+        router, self._router = self._router, None
+        try:
+            if logout:
+                router.logout()
+        finally:
+            router.s.close()
 
 
 # ---------------------------------------------------------------- parsing

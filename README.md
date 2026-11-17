@@ -29,8 +29,16 @@ Manual install: copy `custom_components/nokia_gpon/` into your
 
 ## Behaviour
 
-- Polls every 60 s. Each poll logs in, reads the device list and logs out again,
-  so the router's admin UI is never blocked for long.
+- Polls every 60 s, reusing one login session (a poll takes ~2.5 s on a
+  G-2426G-A; logging in each time would take ~9 s).
+- **The router allows only one session per account**: every login kicks out the
+  previous one. So when you log into the router's web UI, Home Assistant's
+  session ends; the integration notices, steps aside for 15 minutes (trackers
+  show as unavailable) and only then logs in again, which will log *you* out if
+  you are still in the web UI. While Home Assistant holds the session, the
+  router rejects your first browser login attempt; just log in a second time. Running the
+  command-line tool also takes over the session. The integration logs out when
+  it is unloaded or Home Assistant stops.
 - Trackers are created **disabled** (Home Assistant's default for router
   integrations, so guests don't clutter your setup), unless Home Assistant
   already knows the device's MAC address from another integration. Enable the ones you need
@@ -74,6 +82,7 @@ For debugging without Home Assistant (needs `requests` and `cryptography`):
 python scripts/nokia_devices.py          # online devices
 python scripts/nokia_devices.py --all    # include offline devices
 python scripts/nokia_devices.py --json
+python scripts/nokia_devices.py --timing # duration of each step, and of one HA poll
 ```
 
 Environment variables: `NOKIA_HOST`, `NOKIA_USER`, `NOKIA_PASS`

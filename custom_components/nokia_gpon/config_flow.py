@@ -8,6 +8,7 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.helpers.selector import TextSelector, TextSelectorConfig, TextSelectorType
 
 from .api import (
     CannotConnect,
@@ -24,6 +25,10 @@ from .const import CONF_FINGERPRINT, DEFAULT_HOST, DEFAULT_USERNAME, DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 CONF_TRUST_CERT = "trust_new_certificate"
+# masked input that password managers can fill
+PASSWORD_SELECTOR = TextSelector(
+    TextSelectorConfig(type=TextSelectorType.PASSWORD, autocomplete="current-password")
+)
 
 
 class NokiaConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -80,7 +85,7 @@ class NokiaConfigFlow(ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): str,
-                vol.Required(CONF_PASSWORD): str,
+                vol.Required(CONF_PASSWORD): PASSWORD_SELECTOR,
             }
         )
         return self.async_show_form(
@@ -119,7 +124,7 @@ class NokiaConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = error
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): PASSWORD_SELECTOR}),
             description_placeholders={"host": entry.data[CONF_HOST]},
             errors=errors,
         )
@@ -159,7 +164,7 @@ class NokiaConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_TRUST_CERT, default=False): bool,
-                    vol.Required(CONF_PASSWORD): str,
+                    vol.Required(CONF_PASSWORD): PASSWORD_SELECTOR,
                 }
             ),
             description_placeholders={
