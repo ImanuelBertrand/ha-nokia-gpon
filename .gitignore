@@ -1,0 +1,11 @@
+# Router dumps: contain device names, MACs and session IDs - never commit
+probe_out/
+login.html
+*.html.txt
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.idea/
+.vscode/
