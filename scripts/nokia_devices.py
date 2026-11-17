@@ -36,7 +36,9 @@ def main():
     else:
         user = os.environ.get("NOKIA_USER", "userAdmin")
         password = os.environ.get("NOKIA_PASS") or getpass.getpass(f"password for {user}: ")
-        devices = api.fetch_devices(args.host, user, password)
+        # The CLI trusts whatever certificate the router presents now (no stored pin).
+        fingerprint = api.get_fingerprint(args.host)
+        devices = api.fetch_devices(args.host, user, password, fingerprint)
 
     online = [d for d in devices if d["online"]]
     shown = devices if args.all else online

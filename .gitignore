@@ -1,7 +1,17 @@
-# Router dumps: contain device names, MACs and session IDs - never commit
+# Router dumps (device names, MACs, session IDs) - never commit
 probe_out/
-login.html
-*.html.txt
+*.html
+*.cgi*.txt
+*.har
+.env
+*.pem
+*.log
+*.txt
+devices*.json
+# Home Assistant config accidentally copied into the repo
+/*.yaml
+secrets.yaml
+.storage/
 
 __pycache__/
 *.pyc

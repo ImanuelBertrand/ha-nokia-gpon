@@ -3,6 +3,7 @@
     "step": {
       "user": {
         "title": "Nokia GPON router",
+        "description": "The router's TLS certificate is self-signed; the certificate presented now will be trusted from here on.",
         "data": {
           "host": "Host",
           "username": "Username",
@@ -10,20 +11,33 @@
         }
       },
       "reauth_confirm": {
-        "title": "Router login failed",
-        "description": "Enter the current password for the router's web UI.",
+        "title": "Router rejected the login",
+        "description": "The router at {host} rejected the password. This also happens when the account is temporarily locked after failed logins (e.g. typos in the browser); wait a few minutes before retrying.",
         "data": {
+          "password": "Password"
+        }
+      },
+      "reauth_certificate": {
+        "title": "Router certificate changed",
+        "description": "The router at {host} presents a different TLS certificate than the trusted one (or none is trusted yet), so the password was not sent.\n\nPreviously trusted:\n`{old_fingerprint}`\n\nPresented now:\n`{new_fingerprint}`\n\nThis is expected after a router firmware update or factory reset. If neither happened, someone on your network may be intercepting the connection: do not continue. You can compare the fingerprint with the certificate shown by your browser at {router_url}.",
+        "data": {
+          "trust_new_certificate": "I trust the new certificate",
           "password": "Password"
         }
       }
     },
     "error": {
       "cannot_connect": "Cannot reach the router web UI.",
-      "invalid_auth": "Router rejected the username or password. Note: the router locks logins after several failed attempts."
+      "invalid_auth": "Router rejected the username or password. Note: the router locks logins after several failed attempts.",
+      "invalid_host": "Invalid host.",
+      "certificate_changed": "The router's certificate changed while logging in.",
+      "certificate_not_trusted": "Confirm that you trust the new certificate.",
+      "unknown": "Unexpected error, see the Home Assistant log.",
+      "certificate_changed_again": "The certificate changed again; check the new fingerprint below."
     },
     "abort": {
       "already_configured": "This router is already configured.",
-      "reauth_successful": "Password updated."
+      "reauth_successful": "Router login updated."
     }
   }
 }
